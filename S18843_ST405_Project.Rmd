@@ -1,0 +1,182 @@
+---
+title: "ST405 Project"
+author: "S/18/843"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(psych)
+library(ggplot2)
+library(corrplot)
+library(ggcorrplot)
+library(nFactors)
+library(skimr)
+library(performance)
+library(lavaan)
+```
+
+```{r}
+mydata<-read.csv("../Data/mydata.csv")
+mydata
+```
+```{r}
+str(mydata)
+```
+
+```{r}
+any(is.na(mydata))
+```
+```{r}
+mydata <- apply(mydata,2,scale)
+head(mydata)
+```
+```{r}
+KMO(mydata)
+```
+
+```{r}
+#mydata <- mydata[,KMO(mydata)$MSAi>0.5]
+#head(mydata)
+#KMO(mydata)
+```
+
+
+```{r}
+mydata <- mydata[,-c(2)]
+#head(mydata)
+KMO(mydata)
+```
+```{r}
+#mydata <- mydata[,-c(1)]
+#head(mydata)
+#KMO(mydata)
+```
+```{r}
+#mydata <- mydata[,-c(1:2)]
+#head(mydata)
+#KMO(mydata)
+```
+
+
+
+```{r}
+cortest.bartlett(mydata)
+```
+
+```{r}
+cor_matrix <- cor(mydata)
+cor_matrix
+```
+
+```{r}
+ggcorrplot(cor_matrix)
+```
+```{r}
+mydata_cov <- cov(mydata)
+mydata_cov
+```
+```{r}
+mydata_cov_eigen <- eigen(mydata_cov)
+# eigen values
+mydata_cov_eigen$values
+# eigen vectors
+mydata_cov_eigen$vectors
+```
+```{r}
+PVE <- mydata_cov_eigen$values / sum(mydata_cov_eigen$values)
+PVE
+sum(mydata_cov_eigen$values)
+sum(PVE)
+```
+```{r}
+pca<-princomp(mydata_cov)
+pca
+```
+```{r}
+summary(pca)
+```
+```{r}
+scree(mydata)
+```
+```{r}
+fa.parallel(mydata,fm="pa",fa="fa")
+```
+
+
+```{r}
+#unrotated_pc_loadings <-as.data.frame(unclass(mydata_PC$loadings))
+##unrotated_pc_loadings
+```
+```{r}
+#unrotated_pc_com <- as.data.frame(unclass(mydata_PC$communality))
+#unrotated_pc_com
+```
+```{r}
+mydata_PC<- fa(mydata_cov ,nfactors = 3,rotate = "varimax",n.obs 
+= 7385 ,covar = TRUE,fm = "pa",max.iter = 1000)
+mydata_PC
+```
+
+```{r}
+rotated_pc_loadings <-as.data.frame(unclass(mydata_PC$loadings))
+rotated_pc_loadings
+```
+```{r}
+rotated_pc_com <-as.data.frame(unclass(mydata_PC$communality))
+rotated_pc_com
+```
+
+
+
+```{r}
+mydata_ML <- fa(mydata_cov,nfactors = 3,rotate = "varimax",n.obs 
+= 7385 , covar = TRUE, fm = 'ml')
+mydata_ML
+```
+```{r}
+rotated_ml_loadings <-as.data.frame(unclass(mydata_ML$loadings))
+rotated_ml_loadings
+```
+
+```{r}
+#unrotated_ml_loadings <-as.data.frame(unclass(mydata_ML$loadings))
+#unrotated_ml_loadings
+```
+```{r}
+rotated_ml_com <- as.data.frame(unclass(mydata_ML$communality))
+rotated_ml_com
+```
+```{r}
+#not neccessary
+mydata_PC_rotate <- fa(mydata_cov ,nfactors = 2,rotate ="varimax",n.obs = 7385 ,covar = TRUE,fm = 'pa')
+mydata_PC_rotate
+rotated_pc_loadings <-as.data.frame(unclass(mydata_PC_rotate$loadings))
+rotated_pc_loadings
+```
+
+
+```{r}
+fa.diagram(mydata_ML)
+```
+```{r}
+features <-mydata[,c("AFDP","GTEP","TIT","TEY","CDP","CO","NOX","AT","AH","TAT")]
+#define the CFA model
+model <- '
+ Factor1 =~CDP+TEY+GTEP+AFDP+TIT+CO
+ Factor2 =~AT+NOX+AH
+ Factor3=~ TAT
+'# Fit the CFA model
+fit <- cfa(model, data = features)
+# Assess model fit
+#summary(fit, fit.measures = TRUE)
+# Standardized estimates (factor loadings)
+#parameterEstimates(fit, standardized = TRUE, ci = TRUE)
+summary(fit,fit.measures=T,standardized=T)
+```
+
